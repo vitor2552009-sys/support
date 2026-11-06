@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gamer Arcade — Suporte de Aplicativo</title>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif}
+        :root{
+            --preto:#0a0a0a; --preto2:#161616; --preto3:#222222;
+            --vermelho:#cc0000; --vermelho2:#ff1a1a; --texto:#e8e8e8
+        }
+        body{
+            background: url('https://media.discordapp.net/attachments/1562085608392761384/1565980622726496287/bg_gamerArcade.png') no-repeat center center fixed;
+            background-size: cover;
+            color:var(--texto); min-height:100vh
+        }
+        .overlay{background:rgba(0,0,0,.88); min-height:100vh}
+        .container{max-width:1200px; margin:0 auto; padding:20px}
+        header{text-align:center; padding:30px 0; border-bottom:2px solid var(--vermelho); margin-bottom:30px}
+        h1{color:var(--vermelho); font-size:2.5rem; text-shadow:0 0 12px rgba(204,0,0,.5)}
+        .sub{color:#999; margin-top:8px}
+        .card{
+            background:var(--preto2); border:1px solid var(--vermelho);
+            border-radius:10px; padding:25px; margin-bottom:20px;
+            box-shadow:0 0 15px rgba(204,0,0,.2)
+        }
+        .btn{
+            background:linear-gradient(90deg,var(--vermelho),var(--vermelho2));
+            color:#fff; border:none; padding:12px 25px; border-radius:5px;
+            font-weight:bold; cursor:pointer; transition:.3s; margin:5px;
+            display:inline-flex; align-items:center; gap:8px
+        }
+        .btn:hover{transform:scale(1.05); box-shadow:0 0 15px var(--vermelho)}
+        .btn-secundario{
+            background:transparent; border:1px solid var(--vermelho);
+            color:var(--vermelho)
+        }
+        .btn-secundario:hover{background:var(--vermelho); color:#fff}
+        input,textarea,select{
+            width:100%; padding:12px; background:var(--preto3);
+            border:1px solid #333; color:#fff; border-radius:5px; margin:8px 0
+        }
+        input:focus,textarea:focus{outline:none; border-color:var(--vermelho); box-shadow:0 0 8px rgba(204,0,0,.4)}
+        .hidden{display:none !important}
+        .ticket{
+            background:var(--preto3); border-left:4px solid var(--vermelho);
+            padding:15px; margin:10px 0; border-radius:0 5px 5px 5px;
+            cursor:pointer; transition:.2s
+        }
+        .ticket:hover{background:#2b2b2b}
+        .ticket.aberto{border-left-color:#2ecc71}
+        .ticket.fechado{border-left-color:#e74c3c}
+        .chat-area{
+            height:400px; overflow-y:auto; background:var(--preto3);
+            border-radius:5px; padding:15px; margin-bottom:10px
+        }
+        .msg{margin:10px 0; padding:12px; border-radius:8px; max-width:80%}
+        .msg.usuario{background:#1c3b5c; margin-left:auto; text-align:right}
+        .msg.admin{background:#441a1a; margin-right:auto}
+        .msg small{opacity:.7; font-size:.75rem; display:block; margin-top:4px}
+        .senha-box{max-width:420px; margin:100px auto}
+        .status{
+            display:inline-block; padding:4px 12px; border-radius:12px;
+            font-size:.8rem; margin-left:10px
+        }
+        .status-abertos{background:rgba(46,204,113,.15); color:#2ecc71}
+        .status-fechados{background:rgba(231,76,60,.15); color:#e74c3c}
+        .aviso{
+            background:rgba(204,0,0,.08); border:1px solid var(--vermelho);
+            padding:12px; border-radius:5px; margin:10px 0;
+            display:flex; align-items:center; gap:8px
+        }
+        hr{border:none; border-top:1px solid #333; margin:18px 0}
+        h2,h3{margin-bottom:15px; color:var(--vermelho)}
+    </style>
+</head>
+<body>
+    <div class="overlay">
+        <div class="container">
+            <header>
+                <h1><i class="fas fa-shield-alt"></i> Gamer Arcade</h1>
+                <p class="sub">Suporte Oficial — Aplicativo</p>
+            </header>
+
+            <!-- Area do Usuario -->
+            <div id="areaUsuario">
+                <div class="card">
+                    <h2><i class="fas fa-plus-circle"></i> Abrir Novo Ticket</h2>
+                    <div class="aviso">
+                        <i class="fas fa-info-circle"></i>
+                        Descreva detalhadamente o problema ou dúvida para agilizar o atendimento
+                    </div>
+                    <input type="text" id="nomeUsuario" placeholder="Seu nome ou usuário">
+                    <select id="categoria">
+                        <option value="">Selecione a categoria</option>
+                        <option value="conta">Acesso e Conta</option>
+                        <option value="erro">Erro no Aplicativo</option>
+                        <option value="pagamento">Pagamento e Assinatura</option>
+                        <option value="sugestao">Sugestão</option>
+                        <option value="outro">Outro Assunto</option>
+                    </select>
+                    <input type="text" id="assunto" placeholder="Assunto">
+                    <textarea id="mensagemInicial" rows="4" placeholder="Descreva o que ocorreu, versão do aplicativo e sistema operacional..."></textarea>
+                    <button class="btn" onclick="abrirTicket()">
+                        <i class="fas fa-paper-plane"></i> Enviar Ticket
+                    </button>
+                    <button class="btn btn-secundario" onclick="mostrarMeusTickets()">
+                        <i class="fas fa-list"></i> Meus Tickets
+                    </button>
+                    <button class="btn btn-secundario" onclick="mostrarPainelAdmin()">
+                        <i class="fas fa-lock"></i> Painel Administrativo
+                    </button>
+                </div>
+
+                <div id="listaTickets" class="card hidden">
+                    <h2><i class="fas fa-clipboard-list"></i> Meus Tickets</h2>
+                    <button class="btn btn-secundario" onclick="voltarInicio()">
+                        <i class="fas fa-arrow-left"></i> Voltar
+                    </button>
+                    <div id="meusTicketsLista" style="margin-top:15px"></div>
+                </div>
+
+                <div id="chatTicket" class="card hidden">
+                    <h2 id="tituloTicket"></h2>
+                    <span id="statusTicket"></span>
+                    <div class="chat-area" id="caixaChat"></div>
+                    <textarea id="entradaMsg" rows="2" placeholder="Digite sua mensagem..."></textarea>
+                    <button class="btn" onclick="enviarMensagem()">
+                        <i class="fas fa-paper-plane"></i> Enviar
+                    </button>
+                    <button class="btn btn-secundario" onclick="fecharTicketUsuario()">
+                        <i class="fas fa-times-circle"></i> Fechar Ticket
+                    </button>
+                    <button class="btn btn-secundario" onclick="voltarLista()">
+                        <i class="fas fa-arrow-left"></i> Voltar
+                    </button>
+                </div>
+            </div>
+
+            <!-- Login Administrativo -->
+            <div id="loginAdmin" class="card senha-box hidden">
+                <h2 style="text-align:center"><i class="fas fa-user-shield"></i> Painel Administrativo</h2>
+                <input type="password" id="senhaAdmin" placeholder="Digite a senha">
+                <button class="btn" style="width:100%;justify-content:center" onclick="verificarSenha()">
+                    <i class="fas fa-sign-in-alt"></i> Acessar
+                </button>
+                <p style="text-align:center;margin-top:15px">
+                    <button class="btn btn-secundario" onclick="voltarInicio()">
+                        <i class="fas fa-arrow-left"></i> Voltar
+                    </button>
+                </p>
+            </div>
+
+            <!-- Painel Administrativo -->
+            <div id="painelAdmin" class="hidden">
+                <div class="card">
+                    <h2><i class="fas fa-cog"></i> Painel Administrativo — Suporte</h2>
+                    <button class="btn btn-secundario" onclick="sairAdmin()">
+                        <i class="fas fa-sign-out-alt"></i> Sair
+                    </button>
+                    <hr>
+                    <h3><i class="fas fa-ticket-alt"></i> Todos os Tickets</h3>
+                    <div id="todosTickets"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuração do Firebase
+        const firebaseConfig = {
+            apiKey: "COLOQUE_SUA_API_KEY_AQUI",
+            authDomain: "supportt-908a4.firebaseapp.com",
+            databaseURL: "https://supportt-908a4-default-rtdb.firebaseio.com/",
+            projectId: "supportt-908a4",
+            storageBucket: "supportt-908a4.appspot.com",
+            messagingSenderId: "COLOQUE_SEU_ID_AQUI",
+            appId: "COLOQUE_SUA_APP_ID_AQUI"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        const SENHA_ADMIN = "2050";
+
+        let ticketAtual = null;
+        let tipoUsuario = 'comum';
+        let nomeAtual = '';
+
+        function trocarTela(idExibir){
+            document.getElementById('areaUsuario').classList.add('hidden');
+            document.getElementById('loginAdmin').classList.add('hidden');
+            document.getElementById('painelAdmin').classList.add('hidden');
+            document.getElementById('listaTickets').classList.add('hidden');
+            document.getElementById('chatTicket').classList.add('hidden');
+            
+            if(idExibir === 'loginAdmin'){
+                document.getElementById('loginAdmin').classList.remove('hidden');
+            } else if(idExibir === 'painelAdmin'){
+                document.getElementById('painelAdmin').classList.remove('hidden');
+                carregarTodosTickets();
+            } else if(idExibir === 'listaTickets'){
+                document.getElementById('areaUsuario').classList.remove('hidden');
+                document.getElementById('listaTickets').classList.remove('hidden');
+            } else if(idExibir === 'chatTicket'){
+                document.getElementById('areaUsuario').classList.remove('hidden');
+                document.getElementById('chatTicket').classList.remove('hidden');
+            } else {
+                document.getElementById('areaUsuario').classList.remove('hidden');
+            }
+        }
+
+        function voltarInicio(){
+            nomeAtual = '';
+            trocarTela('inicio');
+        }
+
+        function voltarLista(){
+            ticketAtual = null;
+            if(tipoUsuario === 'admin') carregarTodosTickets();
+            else mostrarMeusTickets();
+        }
+
+        function abrirTicket(){
+            const nome = document.getElementById('nomeUsuario').value.trim();
+            const cat = document.getElementById('categoria').value;
+            const assunto = document.getElementById('assunto').value.trim();
+            const msg = document.getElementById('mensagemInicial').value.trim();
+
+            if(!nome || !cat || !assunto || !msg){
+                alert('Preencha todos os campos!'); return;
+            }
+
+            nomeAtual = nome;
+            const ref = db.ref('tickets').push();
+            const ticketId = ref.key;
+
+            ref.set({
+                id: ticketId,
+                autor: nome,
+                categoria: cat,
+                assunto: assunto,
+                status: 'aberto',
+                data: new Date().toLocaleString('pt-BR'),
+                ultimaAtividade: new Date().toISOString()
+            }).then(() => {
+                db.ref('messages/' + ticketId).push().set({
+                    remetente: nome,
+                    texto: msg,
+                    horario: new Date().toLocaleString('pt-BR'),
+                    tipo: 'usuario'
+                });
+                alert('Ticket enviado com sucesso! ID: ' + ticketId);
+                mostrarMeusTickets();
+            }).catch(e => alert('Erro: ' + e));
+        }
+
+        function mostrarMeusTickets(){
+            if(!nomeAtual) nomeAtual = prompt('Digite seu nome ou usuário para consultar seus tickets:');
+            if(!nomeAtual) return;
+
+            trocarTela('listaTickets');
+            const lista = document.getElementById('meusTicketsLista');
+            lista.innerHTML = '<p>Carregando...</p>';
+
+            db.ref('tickets').orderByChild('autor').equalTo(nomeAtual).once('value', snap => {
+                lista.innerHTML = '';
+                if(!snap.exists()){
+                    lista.innerHTML = '<p>Nenhum ticket encontrado.</p>';
+                    return;
+                }
+                snap.forEach(tk => {
+                    const t = tk.val();
+                    lista.innerHTML += `
+                        <div class="ticket ${t.status}" onclick="abrirChat('${t.id}','usuario')">
+                            <strong>${t.assunto}</strong>
+                            <span class="status status-${t.status === 'aberto' ? 'abertos' : 'fechados'}">
+                                ${t.status.toUpperCase()}
+                            </span>
+                            <br><small>${t.categoria} — ${t.data}</small>
+                        </div>`;
+                });
+            });
+        }
+
+        function
